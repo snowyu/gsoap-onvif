@@ -5,25 +5,26 @@
 #include "plugin/wsaapi.h"
 #include  <openssl/rsa.h>
 #include  "ErrorLog.h"
- 
+
 #include "include/soapDeviceBindingProxy.h"
 #include "include/soapMediaBindingProxy.h"
 #include "include/soapPTZBindingProxy.h"
 
 #include "include/soapPullPointSubscriptionBindingProxy.h"
-#include "include/soapRemoteDiscoveryBindingProxy.h" 
+#include "include/soapRemoteDiscoveryBindingProxy.h"
 
 using namespace std;
 
+#define DEV_USER "admin"
 #define DEV_PASSWORD "admin"
 #define MAX_HOSTNAME_LEN 128
-#define MAX_LOGMSG_LEN 256 
+#define MAX_LOGMSG_LEN 256
 
 
 void PrintErr(struct soap* _psoap)
 {
 	fflush(stdout);
-	processEventLog(__FILE__, __LINE__, stdout, "error:%d faultstring:%s faultcode:%s faultsubcode:%s faultdetail:%s", _psoap->error, 
+	processEventLog(__FILE__, __LINE__, stdout, "error:%d faultstring:%s faultcode:%s faultsubcode:%s faultdetail:%s", _psoap->error,
 	*soap_faultstring(_psoap), *soap_faultcode(_psoap),*soap_faultsubcode(_psoap), *soap_faultdetail(_psoap));
 }
 
@@ -33,13 +34,21 @@ int main(int argc, char* argv[])
 	bool blSupportPTZ = false;
 	char szHostName[MAX_HOSTNAME_LEN] = { 0 };
 	char sLogMsg[MAX_LOGMSG_LEN] = { 0 };
+	char szPassword[MAX_HOSTNAME_LEN] = DEV_PASSWORD;
+	char szUser[MAX_HOSTNAME_LEN] = DEV_USER;
 
 	DeviceBindingProxy proxyDevice;
-	RemoteDiscoveryBindingProxy proxyDiscovery; 
+	RemoteDiscoveryBindingProxy proxyDiscovery;
 	MediaBindingProxy proxyMedia;
 	PTZBindingProxy proxyPTZ;
 	PullPointSubscriptionBindingProxy proxyEvent;
 
+	if (argc > 3) {
+		strcat(szUser, argv[3]);
+	}
+	if (argc > 2) {
+		strcat(szPassword, argv[2]);
+	}
 	if (argc > 1)
 	{
 		strcat(szHostName, "http://");
@@ -50,7 +59,8 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		processEventLog(__FILE__, __LINE__, stdout, "wrong args,usage: ./a.out 172.18.4.100 ");
+		processEventLog(__FILE__, __LINE__, stdout, "wrong args,usage: ./ipconvif 172.18.4.100 [password] [user]");
+		processEventLog(__FILE__, __LINE__, stdout, "the default password and user is 'admin'");
 		return -1;
 	}
 
@@ -64,12 +74,12 @@ int main(int argc, char* argv[])
 
 	struct soap *soap = soap_new();
 
-	if (SOAP_OK != soap_wsse_add_UsernameTokenDigest(proxyDevice.soap, NULL, "admin", DEV_PASSWORD))
+	if (SOAP_OK != soap_wsse_add_UsernameTokenDigest(proxyDevice.soap, NULL, szUser, szPassword))
 	{
 		return -1;
 	}
 
-	if (SOAP_OK != soap_wsse_add_Timestamp(proxyDevice.soap, "Time", 10)) 
+	if (SOAP_OK != soap_wsse_add_Timestamp(proxyDevice.soap, "Time", 10))
 	{
 		return -1;
 	}
@@ -87,8 +97,8 @@ int main(int argc, char* argv[])
 		PrintErr(proxyDevice.soap);
 	}
 
-	soap_destroy(soap); 
-	soap_end(soap); 
+	soap_destroy(soap);
+	soap_end(soap);
 
 	if (SOAP_OK != soap_wsse_add_UsernameTokenDigest(proxyDevice.soap, NULL, "admin", DEV_PASSWORD))
 	{
@@ -166,7 +176,7 @@ int main(int argc, char* argv[])
 			processEventLog(__FILE__, __LINE__, stdout, "XAddr:%s", tds__GetCapabilitiesResponse->Capabilities->Events->XAddr.c_str());
 			processEventLog(__FILE__, __LINE__, stdout, "WSSubscriptionPolicySupport:%s", (tds__GetCapabilitiesResponse->Capabilities->Events->WSSubscriptionPolicySupport) ? "Y" : "N");
 			processEventLog(__FILE__, __LINE__, stdout, "WSPullPointSupport:%s", (tds__GetCapabilitiesResponse->Capabilities->Events->WSPullPointSupport) ? "Y" : "N");
-			processEventLog(__FILE__, __LINE__, stdout, "WSPausableSubscriptionManagerInterfaceSupport:%s", 
+			processEventLog(__FILE__, __LINE__, stdout, "WSPausableSubscriptionManagerInterfaceSupport:%s",
 																				 (tds__GetCapabilitiesResponse->Capabilities->Events->WSPausableSubscriptionManagerInterfaceSupport) ? "Y" : "N");
 
 			proxyEvent.soap_endpoint = tds__GetCapabilitiesResponse->Capabilities->Events->XAddr.c_str();
@@ -205,8 +215,8 @@ int main(int argc, char* argv[])
 		PrintErr(proxyDevice.soap);
 	}
 
-	soap_destroy(soap); 
-	soap_end(soap); 
+	soap_destroy(soap);
+	soap_end(soap);
 
 	_tds__GetDeviceInformation *tds__GetDeviceInformation = soap_new__tds__GetDeviceInformation(soap, -1);
 	_tds__GetDeviceInformationResponse *tds__GetDeviceInformationResponse = soap_new__tds__GetDeviceInformationResponse(soap, -1);
@@ -223,8 +233,8 @@ int main(int argc, char* argv[])
 		PrintErr(proxyDevice.soap);
 	}
 
-	soap_destroy(soap); 
-	soap_end(soap); 
+	soap_destroy(soap);
+	soap_end(soap);
 
 	if (SOAP_OK != soap_wsse_add_UsernameTokenDigest(proxyDevice.soap, NULL, "admin", DEV_PASSWORD))
 	{
@@ -254,7 +264,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	if (SOAP_OK != soap_wsse_add_Timestamp(proxyMedia.soap, "Time", 10)) 
+	if (SOAP_OK != soap_wsse_add_Timestamp(proxyMedia.soap, "Time", 10))
 	{
 		return -1;
 	}
@@ -298,8 +308,8 @@ int main(int argc, char* argv[])
 		PrintErr(proxyMedia.soap);
 	}
 
-	soap_destroy(soap); 
-	soap_end(soap); 
+	soap_destroy(soap);
+	soap_end(soap);
 
 	if (SOAP_OK != soap_wsse_add_UsernameTokenDigest(proxyMedia.soap, NULL, "admin", DEV_PASSWORD))
 	{
@@ -329,8 +339,8 @@ int main(int argc, char* argv[])
 				PrintErr(proxyMedia.soap);
 			}
 
-			 processEventLog(__FILE__, __LINE__, stdout, "Encoding:%s", 
-					 					(trt__GetVideoEncoderConfigurationsResponse->Configurations[i]->Encoding == tt__VideoEncoding__JPEG) ? "tt__VideoEncoding__JPEG" : 
+			 processEventLog(__FILE__, __LINE__, stdout, "Encoding:%s",
+					 					(trt__GetVideoEncoderConfigurationsResponse->Configurations[i]->Encoding == tt__VideoEncoding__JPEG) ? "tt__VideoEncoding__JPEG" :
 										(trt__GetVideoEncoderConfigurationsResponse->Configurations[i]->Encoding == tt__VideoEncoding__MPEG4) ? "tt__VideoEncoding__MPEG4" :
 										(trt__GetVideoEncoderConfigurationsResponse->Configurations[i]->Encoding == tt__VideoEncoding__H264) ? "tt__VideoEncoding__H264" : "Error VideoEncoding");
 			 processEventLog(__FILE__, __LINE__, stdout, "name:%s UseCount:%d token:%s\r\n", trt__GetVideoEncoderConfigurationsResponse->Configurations[i]->Name.c_str(),
@@ -364,14 +374,14 @@ int main(int argc, char* argv[])
 
 
 	soap_destroy(soap);
-	soap_end(soap); 
-	
+	soap_end(soap);
+
 	if (SOAP_OK != soap_wsse_add_UsernameTokenDigest(proxyEvent.soap, NULL, "admin", DEV_PASSWORD))
 	{
 		return -1;
 	}
 
-	if (SOAP_OK != soap_wsse_add_Timestamp(proxyEvent.soap, "Time", 10)) 
+	if (SOAP_OK != soap_wsse_add_Timestamp(proxyEvent.soap, "Time", 10))
 	{
 		return -1;
 	}
@@ -392,7 +402,7 @@ int main(int argc, char* argv[])
 		{
 			 processEventLog(__FILE__, __LINE__, stdout, "TopicNamespaceLocation[%d]:%s", i, tev__GetEventPropertiesResponse->TopicNamespaceLocation[i].c_str());
 		}
-		
+
 
 		for (int i = 0; i < tev__GetEventPropertiesResponse->MessageContentFilterDialect.size(); i++)
 		{
@@ -410,8 +420,8 @@ int main(int argc, char* argv[])
 	}
 
 	soap_destroy(soap);
-	soap_end(soap); 
-	
+	soap_end(soap);
+
 	return 0;
 }
 
